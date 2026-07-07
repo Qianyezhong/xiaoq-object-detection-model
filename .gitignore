@@ -1,0 +1,6 @@
+# PyPI configuration file
+.idea
+*.pth.*
+*.pth
+runs/
+predict
