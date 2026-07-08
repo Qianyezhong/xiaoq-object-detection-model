@@ -2,9 +2,9 @@ from torch import nn
 
 class XiaoqLoss(nn.Module):
     def __init__(self):
-        super.__init__()
+        super().__init__()
         self.location_loss = nn.MSELoss()
-        self.classification_loss = nn.CrossEntropyLoss()
+        self.classification_loss = nn.BCEWithLogitsLoss()
 
     # predict 尺寸[n,8]
     def forward(self, predicts, targets):

@@ -1,24 +1,53 @@
 import torch.onnx
 from torch import nn
-from torchvision.models import vgg16
+from torchvision.models import vgg16, resnet18, ResNet18_Weights
+
 
 class XiaoqModel(nn.Module):
     def __init__(self):
         super().__init__()
-        self.feature_export = vgg16().features
+        # 采用ResNet17
+        resnet = resnet18(
+            weights= ResNet18_Weights.DEFAULT
+        )
+        # self.feature_export = vgg16().features
+        # self.fc_layer = nn.Sequential(
+        #     nn.Flatten(),
+        #     nn.Linear(512*14*14, 4096),
+        #     nn.ReLU(),
+        #     nn.Linear(4096, 1024),
+        #     nn.ReLU(),
+        #     # 最后输出是 center四个坐标+四个类别（with helmet...）
+        #     nn.Linear(1024, 8)
+        # )
+
+        # 去掉最后分类层
+        self.feature_export = nn.Sequential(
+            *list(resnet.children())[:-1]
+        )
+
         self.fc_layer = nn.Sequential(
             nn.Flatten(),
-            nn.Linear(512*14*14, 4096),
+            nn.Linear(
+                512,
+                256
+            ),
             nn.ReLU(),
-            nn.Linear(4096, 1024),
-            nn.ReLU(),
-            # 最后输出是 center四个坐标+四个类别（with helmet...）
-            nn.Linear(1024, 8)
+            nn.Linear(256, 8)
         )
 
     def forward(self, x):
         x= self.feature_export(x)
-        return self.fc_layer(x)
+        x= self.fc_layer(x)
+
+        box = torch.sigmoid(
+            x[:,:4]
+        )
+        cls = x[:,4:]
+        return torch.cat([
+            box,
+            cls
+        ], 1)
 
 if __name__ == '__main__':
     model = XiaoqModel()

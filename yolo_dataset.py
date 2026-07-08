@@ -1,6 +1,5 @@
 import os
 import torch
-import xmltodict
 from PIL import Image
 from torch.utils.data import Dataset
 from torchvision import transforms
@@ -12,7 +11,13 @@ class YOLODataset(Dataset):
         self.label_folder = label_folder
         self.transform = transform
         self.label_transform = label_transform
-        self.image_names = os.listdir(self.image_folder) #获取文件列表,['1.jpg','2.jpg']
+        # self.image_names = os.listdir(self.image_folder) #获取文件列表,['1.jpg','2.jpg'],但是返回顺序不固定
+        self.image_names = sorted(
+            os.listdir(self.image_folder)
+        )
+
+        # 类别数量
+        self.num_classes = 4
 
         # 类别转换
         # self.classes_list = ["no helmet", "motor", "number", "with helmet"]
@@ -48,20 +53,33 @@ class YOLODataset(Dataset):
         target = []
         for obj in object_info:
             object_info_list = obj.strip().split(' ')
-            class_id = float(object_info_list[0])
+            class_id = int(object_info_list[0])
             center_x = float(object_info_list[1])
             center_y = float(object_info_list[2])
             width = float(object_info_list[3])
             height = float(object_info_list[4])
-            target.append([class_id, center_x, center_y, width, height])
+            # 类别one-hot
+            class_one_hot = [0]* self.num_classes
+            class_one_hot[class_id] = 1
+            # 最终target
+            target = [
+                center_x,
+                center_y,
+                width,
+                height,
+                *class_one_hot
+            ]
         # image 转 tensor类型
         if self.transform is not None:
             image = self.transform(image)
         # label 转 tensor类型
-        target = torch.Tensor(target)
+        target = torch.tensor(
+            target,
+            dtype = torch.float32
+        )
         return image, target
 
 if __name__ == '__main__':
-    train_dataset = YOLODataset(r"D:\DeepLearning\HelmetDataset-YOLO-Train\images",r"D:\DeepLearning\HelmetDataset-YOLO-Train\labels", transforms.Compose([transforms.ToTensor()]),None)
+    train_dataset = YOLODataset(r"D:\PythonProject\xiaoq-object-detection-model\Single_object_yolo_dataset\train\images",r"D:\PythonProject\xiaoq-object-detection-model\Single_object_yolo_dataset\train\labels", transforms.Compose([transforms.ToTensor()]),None)
     print(len(train_dataset))
     print(train_dataset[11])
