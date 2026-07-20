@@ -4,3 +4,4 @@
 *.pth
 runs/
 predict
+test/data/
